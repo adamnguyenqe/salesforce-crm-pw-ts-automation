@@ -1,0 +1,28 @@
+{
+  "name": "salesforce-crm-pw-ts-automation",
+  "version": "0.1.0",
+  "description": "Playwright + TypeScript UI automation framework for Salesforce CRM.",
+  "author": "Adam Nguyen Hoang Diep <adam.nguyen.qe@gmail.com>",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:chromium": "playwright test --project=chromium",
+    "test:webkit": "playwright test --project=webkit",
+    "test:headed": "playwright test --headed --project=chromium",
+    "report": "playwright show-report .artifacts/html-report",
+    "trace": "playwright show-trace",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0",
+    "dotenv": "^17.4.2",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+
+    /* Strictness - these catch the class of mistake that otherwise
+       surfaces as a flaky selector at runtime. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "noEmit": true,
+
+    /* Barrel aliases - a file move inside a folder never rewrites call
+       sites. Playwright resolves these at runtime via its own tsconfig
+       path support. */
+    "paths": {
+      "@pages": ["./src/pages/index.ts"],
+      "@flows": ["./src/flows/index.ts"],
+      "@fixtures": ["./src/fixtures/index.ts"],
+      "@data": ["./src/data/index.ts"],
+      "@utils": ["./src/utils/index.ts"],
+      "@config": ["./src/config/env.config.ts"]
+    }
+  },
+  "include": ["src", "tests", "playwright.config.ts"],
+  "exclude": ["node_modules", ".artifacts"]
+}

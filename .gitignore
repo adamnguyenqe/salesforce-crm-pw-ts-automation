@@ -1,0 +1,30 @@
+node_modules/
+
+# Secrets - never commit.
+# Only *.local files hold credentials; per-environment .env.<env> files carry
+# non-secret config and are tracked deliberately.
+.env
+.env.local
+environments/.env.local
+*.local
+!*.local.example
+
+# Playwright / run artifacts
+.artifacts/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+*.log
+
+# Auth cache - contains a live Salesforce session token
+.auth/
+storageState.json
+**/storageState*.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
