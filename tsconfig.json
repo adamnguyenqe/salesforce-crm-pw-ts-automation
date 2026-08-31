@@ -30,7 +30,8 @@
       "@fixtures": ["./src/fixtures/index.ts"],
       "@data": ["./src/data/index.ts"],
       "@utils": ["./src/utils/index.ts"],
-      "@config": ["./src/config/env.config.ts"]
+      "@config": ["./src/config/index.ts"],
+      "@constants": ["./src/constants/index.ts"]
     }
   },
   "include": ["src", "tests", "playwright.config.ts"],

@@ -1,0 +1,8 @@
+# Formatting is not a matter of taste once it is committed — it is a diff-noise
+# problem. These match msf-pinetree so the two repos stay interchangeable.
+trailingComma: 'none'
+tabWidth: 2
+semi: true
+singleQuote: true
+printWidth: 100
+useTabs: false

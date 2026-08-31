@@ -28,3 +28,8 @@ storageState.json
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# JWT signing key — never commit
+*.key
+*.pem
+server.crt

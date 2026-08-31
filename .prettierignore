@@ -1,0 +1,10 @@
+# Generated or vendored — never reformat.
+node_modules
+.artifacts
+.auth
+package-lock.json
+
+# Env files: dotenv parsing is whitespace- and quote-sensitive.
+environments
+
+*.md
