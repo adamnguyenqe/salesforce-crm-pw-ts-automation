@@ -2,7 +2,10 @@ name: Playwright Tests
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      # Feature branches: lets you iterate on CI without opening a PR.
+      - 'feature/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
