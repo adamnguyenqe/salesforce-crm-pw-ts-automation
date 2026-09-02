@@ -1,35 +1,29 @@
 import { env } from '@config';
-import { HOME_PAGE_PATH, LIGHTNING_URL_PATTERN, Tags, TIMEOUTS } from '@constants';
+import {
+  HOME_PAGE_PATH,
+  LIGHTNING_URL_PATTERN,
+  SAVED_LOGIN_FILE,
+  Tags,
+  TIMEOUTS
+} from '@constants';
 import { ANONYMOUS, expect, test } from '@fixtures';
 import { LoginPage } from '@pages';
 
 /**
- * PART A — Logging in with a username, a password, and an emailed code.
- *
- * WARNING: Salesforce only sends a limited number of OTP emails.
- * => Run these tests in serial, never in parallel.
+ * Part A: Salesforce UI authentication using username, password, and email OTP verification.
+ * Note: Executed serially to avoid Salesforce email OTP rate limits.
  */
 
 test.describe.configure({ mode: 'serial' });
 
-/** Start with blank state. */
+// Initialize with clean session state.
 test.use({ storageState: ANONYMOUS });
 
-/** Where the first test saves its login, for the second test to reuse. */
-const SAVED_LOGIN_FILE = '.auth/storageState.json';
-
-/** Shown when Salesforce lets us in without asking us to log in. */
-const FORM_WAS_SKIPPED =
-  'Salesforce skipped the login form, so this test never actually logged in. ' +
-  'That usually means it still recognises this computer.';
-
-/** Shown when Salesforce trusts the computer and sends no code. */
-const NO_CODE_WAS_ASKED_FOR =
-  'Salesforce did not ask for an emailed code, so the part this test exists ' +
-  'to check never happened.';
+const FORM_WAS_SKIPPED = 'Expected login form to be displayed.';
+const NO_CODE_WAS_ASKED_FOR = 'Expected Salesforce identity verification (OTP) prompt.';
 
 test(
-  'logs in with a username, password and emailed code',
+  'TC01: Authenticates with username, password, and email verification code',
   { tag: [Tags.PART_A, Tags.OTP] },
   async ({ page, context, loginPage, homePage, mailbox }) => {
     test.setTimeout(TIMEOUTS.DEFAULT_E2E_FLOW);
@@ -58,16 +52,16 @@ test(
     await expect(homePage.searchButton).toBeVisible();
     await expect(homePage.appLauncherButton).toBeVisible();
 
-    // Save the login so the next test can reuse the session and cookies.
+    // Persist storageState for subsequent session reuse.
     await context.storageState({ path: SAVED_LOGIN_FILE });
   }
 );
 
 test(
-  'reuses the saved login without needing a second code',
+  'TC02: Reuses persisted storageState session without prompting for verification',
   { tag: [Tags.PART_A, Tags.OTP] },
   async ({ browser }) => {
-    // Create new context to make sure storageState is saved and can be reuse.
+    // Validate that persisted storageState grants authenticated access.
     const browserWithSavedLogin = await browser.newContext({
       storageState: SAVED_LOGIN_FILE
     });
@@ -79,8 +73,7 @@ test(
 
     await expect(page).toHaveURL(LIGHTNING_URL_PATTERN);
 
-    // If the saved login had not worked, Salesforce would be showing the login
-    // form, so the username box would be on the page.
+    // Verify user is not redirected back to the login form.
     await expect(new LoginPage(page).usernameBox).toHaveCount(0);
 
     await browserWithSavedLogin.close();

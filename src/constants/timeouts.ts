@@ -1,44 +1,39 @@
-/**
- * Timeouts
- */
+/** Application and test timeout configurations (in milliseconds). */
 export const TIMEOUTS = {
-  // ── Looking for something on the page ──────────────────────────────────────
-  /** Reading something already on screen, such as an error message. */
+  // ── Element & UI Interactions ──────────────────────────────────────────────
+  /** Quick lookup for elements already present in DOM (e.g. error labels). */
   SMALL_TIMEOUT: 2_000,
-  /** Checking whether a screen appeared after a click, such as a pop-up. */
+
+  /** Wait duration for dynamic modals, popups, and dropdown menus to appear. */
   SCREEN_APPEARS: 10_000,
-  /** The normal wait for anything on a page that has finished loading. */
+
+  /** Standard timeout for UI actions and element state assertions. */
   DEFAULT_TIMEOUT: 30_000,
-  /** Salesforce loading fully after login. The slowest thing we wait for. */
+
+  /** Extended timeout for full Salesforce Lightning page transitions and initial app loads. */
   SALESFORCE_LOADING: 60_000,
 
-  // ── Loading a page ─────────────────────────────────────────────────────────
-  /** Opening a page, including any redirects along the way. */
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  /** Maximum duration for page navigation and redirect chains. */
   NAVIGATION: 30_000,
 
-  // ── Waiting for the verification email ─────────────────────────────────────
-  // OTP = "one-time password", the short code Salesforce emails at login.
-  /** Total time allowed for the verification email to arrive and be read. */
+  // ── Email & MFA ────────────────────────────────────────────────────────────
+  /** Maximum window for email verification code arrival and IMAP retrieval. */
   OTP_DELIVERY: 120_000,
 
-  // ── Limits on whole tests ──────────────────────────────────────────────────
-  /** Assertion timeout. */
+  // ── Test Execution ─────────────────────────────────────────────────────────
+  /** Default assertion timeout. */
   ASSERTION_TIMEOUT: 15_000,
-  /** Default timeout for end-to-end flows. */
+
+  /** Global timeout for full multi-step E2E user journeys. */
   DEFAULT_E2E_FLOW: 180_000
 } as const;
 
-/**
- * Pauses where we genuinely sit and wait.
- */
+/** Polling intervals and time synchronization thresholds (in milliseconds). */
 export const DELAYS = {
-  /** How long to pause between checks of the inbox. */
+  /** Polling interval between successive IMAP inbox checks. */
   OTP_POLL_INTERVAL: 5_000,
 
-  /**
-   * Clock skew allowance when checking for a new email. The email's timestamp is
-   * based on the server's clock, which may be a few seconds different from the
-   * test machine's clock.
-   */
-  OTP_CLOCK_SKEW: 30_000
+  /** Time buffer applied when matching message arrival timestamps. */
+  OTP_TIMESTAMP_DIFF: 30_000
 } as const;

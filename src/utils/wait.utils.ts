@@ -2,16 +2,11 @@ import type { Locator } from '@playwright/test';
 
 import { TIMEOUTS } from '@constants';
 
-/** Waiting for something to happen. */
-
 /**
- * Wait until an element is visible.
+ * Waits until the specified Locator element reaches visible state.
  *
- * Visible, not just present: Salesforce adds elements to the page before they
- * can be clicked, and clicking too early fails.
- *
- * @param element - The element to wait for
- * @param timeout - How long to wait before failing, in milliseconds
+ * @param element - Target Playwright Locator
+ * @param timeout - Maximum duration to wait in milliseconds
  */
 export async function waitUntilElementVisible(
   element: Locator,
@@ -21,14 +16,11 @@ export async function waitUntilElementVisible(
 }
 
 /**
- * Pause for a fixed time.
+ * Pauses execution for a specified duration.
+ * Use sparingly for asynchronous external dependencies (e.g. email delivery).
  *
- * ONLY for waiting on something outside our control, such as an email being
- * delivered. Never use it to "fix" a flaky test — wait for the thing you
- * actually need with waitUntilElementVisible() instead, or the suite gets slower
- * every time someone reaches for this.
- *
- * @param milliseconds - How long to pause
+ * @param milliseconds - Pause duration in milliseconds
+ * @returns Promise that resolves after the specified duration
  */
 export function pause(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));

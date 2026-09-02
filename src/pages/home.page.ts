@@ -4,26 +4,25 @@ import { waitUntilElementVisible } from '@utils';
 import { BasePage } from './base.page';
 
 /**
- * The main Salesforce screen after logging in.
+ * Page object representing the default Salesforce Lightning Home landing page.
  */
 export class HomePage extends BasePage {
-  /** Search button in the top bar. It is a button, not a text box. */
+  /** Global search button rendered in the Lightning utility bar. */
   readonly searchButton = this.page.getByRole('button', { name: 'Search', exact: true });
 
-  /** The grid-of-dots button in the top bar that opens the list of apps. */
+  /** App Launcher (grid menu) button in the Lightning utility bar. */
   readonly appLauncherButton = this.page.locator(
     'one-app-launcher-header button[title="App Launcher"]'
   );
 
-  /** Either button above — enough to know the page loaded. */
+  /** Combined Locator for primary top navigation controls used for page readiness check. */
   readonly anyTopBarButton = this.searchButton.or(this.appLauncherButton).first();
 
   /**
-   * Wait for Salesforce to finish loading. Can be slow: it draws an empty
-   * frame first, then fills in the content.
+   * Waits until the Lightning navigation bar loads and stabilizes.
    */
   async waitUntilHomePageLoaded(): Promise<void> {
     await waitUntilElementVisible(this.anyTopBarButton, TIMEOUTS.SALESFORCE_LOADING);
-    this.log.info('Salesforce has finished loading', { url: this.currentUrl });
+    this.log.info('Salesforce home page loaded', { url: this.currentUrl });
   }
 }

@@ -63,17 +63,21 @@ function warnAboutMissingSecretsInCi(): void {
 
 warnAboutMissingSecretsInCi();
 
-/** @returns The Salesforce org URL, with any trailing slash removed */
+/**
+ * Resolves the primary Salesforce instance URL, stripping any trailing slash.
+ *
+ * @returns Sanitized Salesforce instance URL string
+ */
 function readOrgUrl(): string {
   return readSetting('SF_INSTANCE_URL').replace(/\/+$/, '');
 }
 
 /**
- * Read one setting.
+ * Reads an environment variable with an optional fallback.
  *
- * @param settingName - The name, e.g. 'SF_USERNAME'
- * @param fallback - What to use when the setting is not set
- * @returns The setting's value, or the fallback
+ * @param settingName - Environment variable key name
+ * @param fallback - Default value if variable is unset
+ * @returns Environment variable value or fallback string
  */
 function readSetting(settingName: string, fallback = ''): string {
   return process.env[settingName] ?? fallback;
@@ -82,34 +86,22 @@ function readSetting(settingName: string, fallback = ''): string {
 const orgUrl = readOrgUrl();
 
 export const env = {
-  // ── App ────────────────────────────────────────────────────────────────────
+  // ── Execution Context ──────────────────────────────────────────────────────
   environmentName,
-  // My Domain URL of the Salesforce Developer org.
   instanceUrl: orgUrl,
-
   logLevel: readSetting('LOG_LEVEL', 'DEBUG'),
 
-  // ── Salesforce credentials — UI login ──────────────────────────────────────
-  // Secrets → environments/.env.local only.
+  // ── Salesforce UI Credentials ──────────────────────────────────────────────
   sfUsername: readSetting('SF_USERNAME'),
   sfPassword: readSetting('SF_PASSWORD'),
 
-  // ── Logging in with a certificate ──────────────────────────────────────────
-  // Consumer Key of the Connected App in Salesforce.
+  // ── OAuth 2.0 JWT Bearer Configuration ─────────────────────────────────────
   sfClientId: readSetting('SF_CLIENT_ID'),
-
-  // Contents of server.key. Quoted and \n-escaped in the file; readPrivateKey()
-  // tidies it back into a real key.
   sfPrivateKey: readSetting('SF_PRIVATE_KEY'),
-
-  // Which Salesforce should accept our signed request, and where to send it.
-  // Both default to the org's own address.
   sfJwtAudience: readSetting('SF_JWT_AUDIENCE') || orgUrl,
   sfTokenHost: readSetting('SF_TOKEN_HOST') || orgUrl,
 
-  // ── Gmail IMAP — the email-otp strategy's mailbox ──────────────────────────
-  // Salesforce emails a one-time code on any login from an unrecognised device.
-  // SF_IMAP_PASSWORD must be a Google App Password, not the account password.
+  // ── IMAP Mailbox Configuration ─────────────────────────────────────────────
   sfImapHost: readSetting('SF_IMAP_HOST'),
   sfImapPort: Number(readSetting('SF_IMAP_PORT', '993')),
   sfImapUser: readSetting('SF_IMAP_USER'),

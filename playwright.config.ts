@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { env } from './src/config';
-import { Tags, TIMEOUTS } from './src/constants';
+import { SAVED_LOGIN_FILE, Tags, TIMEOUTS } from './src/constants';
 
 export default defineConfig({
   testDir: './tests',
@@ -10,7 +10,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 2 : 2,
 
   timeout: TIMEOUTS.DEFAULT_E2E_FLOW,
   expect: { timeout: TIMEOUTS.ASSERTION_TIMEOUT },
@@ -33,25 +33,85 @@ export default defineConfig({
   },
 
   projects: [
-    /**
-     * Part A — the login solutions themselves. These specs perform the login
-     * they are testing, so they authenticate for themselves rather than
-     * inheriting a session.
-     */
     {
-      name: 'part-a-jwt',
+      name: 'part-a-jwt-chromium',
       testDir: './tests/part-a',
       grep: new RegExp(Tags.JWT),
       use: { ...devices['Desktop Chrome'], channel: 'chrome' }
     },
     {
-      name: 'part-a-otp',
+      name: 'part-a-jwt-webkit',
+      testDir: './tests/part-a',
+      grep: new RegExp(Tags.JWT),
+      use: { ...devices['Desktop Safari'] }
+    },
+    {
+      name: 'part-a-otp-chromium',
       testDir: './tests/part-a',
       grep: new RegExp(Tags.OTP),
-      // Salesforce rate-limits verification emails per user, so never run two
-      // of these at once.
       workers: 1,
       use: { ...devices['Desktop Chrome'], channel: 'chrome' }
+    },
+    {
+      name: 'part-a-otp-webkit',
+      testDir: './tests/part-a',
+      grep: new RegExp(Tags.OTP),
+      workers: 1,
+      dependencies: ['part-a-otp-chromium'],
+      use: { ...devices['Desktop Safari'] }
+    },
+
+    {
+      name: 'setup',
+      testDir: './tests/setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' }
+    },
+    {
+      name: 'part-b-chromium',
+      testDir: './tests/part-b',
+      testIgnore: /lead-journey\.ui\.spec\.ts/,
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        storageState: SAVED_LOGIN_FILE
+      }
+    },
+    {
+      name: 'part-b-ui-chromium',
+      testDir: './tests/part-b',
+      testMatch: /lead-journey\.ui\.spec\.ts/,
+      workers: 1,
+      dependencies: ['part-b-chromium'],
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        storageState: SAVED_LOGIN_FILE
+      }
+    },
+    {
+      name: 'part-b-webkit-full',
+      testDir: './tests/part-b',
+      testIgnore: /lead-journey\.ui\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+    },
+    {
+      name: 'part-b-ui-webkit',
+      testDir: './tests/part-b',
+      testMatch: /lead-journey\.ui\.spec\.ts/,
+      workers: 1,
+      dependencies: ['part-b-webkit-full'],
+      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+    },
+    {
+      name: 'part-b-webkit',
+      testDir: './tests/part-b',
+      testIgnore: /lead-journey\.ui\.spec\.ts/,
+      grep: new RegExp(Tags.SMOKE),
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
     }
   ]
 });

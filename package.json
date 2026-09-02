@@ -5,14 +5,15 @@
   "author": "Adam Nguyen Hoang Diep <adam.nguyen.qe@gmail.com>",
   "scripts": {
     "test": "playwright test",
-    "test:jwt": "playwright test --project=part-a-jwt",
-    "test:otp": "playwright test --project=part-a-otp",
-    "test:headed": "playwright test --headed --project=part-a-jwt",
     "report": "playwright show-report .artifacts/html-report",
     "trace": "playwright show-trace",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts",
-    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts"
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts",
+    "test:part-a": "playwright test --project=part-a-jwt-chromium --project=part-a-jwt-webkit",
+    "test:part-b": "playwright test --project=part-b-chromium --project=part-b-ui-chromium",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:cross-browser": "playwright test --project=part-b-chromium --project=part-b-ui-chromium --project=part-b-webkit-full --project=part-b-ui-webkit"
   },
   "type": "commonjs",
   "devDependencies": {
