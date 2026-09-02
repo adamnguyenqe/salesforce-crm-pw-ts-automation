@@ -41,6 +41,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      # action-junit-report publishes results as a check run.
+      checks: write
     # environment: dev   # uncomment if you scope secrets to a GitHub Environment
 
     env:
