@@ -1,44 +1,60 @@
-# Salesforce CRM — Playwright + TypeScript
+# Salesforce CRM Automation (Playwright + TypeScript)
+
+End-to-end UI automation framework for Salesforce CRM built with Playwright and TypeScript.
+
+## Prerequisites
+
+- Node.js >= 20
+- npm >= 10
 
 ## Setup
 
+1. Install dependencies and browser binaries:
+   ```bash
+   npm install
+   npx playwright install chromium webkit
+   ```
+
+2. Configure local environment variables:
+   ```bash
+   cp environments/.env.example environments/.env.local
+   ```
+   Fill in your credentials in `environments/.env.local`:
+   - `SF_INSTANCE_URL`: Salesforce org instance URL
+   - `SF_USERNAME`: Salesforce login username
+   - `SF_PASSWORD`: Salesforce login password
+   - `SF_CLIENT_ID`: Connected App Consumer Key (for JWT auth & API seeding)
+   - `SF_PRIVATE_KEY`: RSA private key string (single-line format with `\n`)
+   - `SF_IMAP_USER`: Gmail address receiving Salesforce verification emails
+   - `SF_IMAP_PASSWORD`: Gmail App Password (with IMAP enabled)
+
+## Running Tests
+
 ```bash
-npm ci
-npx playwright install chromium webkit
+# Run tests on Chromium (default)
+npm test
+
+# Run tests on WebKit (Safari)
+npm run test:webkit
+
+# Run all test suites across Chromium and WebKit
+npm run test:all
+
+# Run only the email OTP verification flow
+npm run test:otp
+
+# Run tests with browser UI visible
+npx playwright test --headed
 ```
 
-## Running
+## Viewing Test Reports
 
+Open the interactive HTML report generated after a test run:
 ```bash
-npm test              # all projects
-npm run test:smoke    # @smoke subset (also the WebKit project's filter)
-npm run test:headed   # watch it run
-npm run test:ui       # Playwright UI mode
-npm run typecheck     # tsc --noEmit
-npm run report        # open the HTML report
+npm run report
 ```
 
-## Layout
-
+To view a Playwright trace from a failed test run:
+```bash
+npm run trace <path-to-trace.zip>
 ```
-src/pages/       Page Objects — locators and intent
-src/flows/       multi-page choreography
-src/fixtures/    Playwright fixtures wiring POMs + test data
-src/data/        test-data factories
-src/utils/       shared helpers
-tests/           specs
-```
-
-Each folder exposes an `index.ts` barrel, reachable through a path alias
-(`@pages`, `@utils`, `@data`, …). Imports name the module rather than the
-file, so moving a file inside a folder never rewrites call sites.
-
-## Conventions
-
-- **No `waitForTimeout`.** Wait on real application signals.
-- **Role- and label-based locators.** Avoid anchoring on generated attributes
-  that regenerate on every render.
-- **Config, data and logic stay separated.** Specs read as scenarios;
-  locators live in page objects; cross-page sequences live in flows.
-- **Parallel-safe by construction.** Test data carries a per-run unique
-  suffix so workers cannot collide.

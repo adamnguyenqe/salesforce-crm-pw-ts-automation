@@ -1,0 +1,32 @@
+{
+  "id": "1442;a",
+  "descriptor": "serviceComponent://ui.lead.runtime.components.controllers.LeadConvertDesktopController/ACTION$convertLeadServer",
+  "callingDescriptor": "UNKNOWN",
+  "params": {
+    "leadId": "00QjV000001BbDNUA0",
+    "newAccountRecord": {
+      "sobjectType": "Account",
+      "Name": "ZZ Aura Co 1788230561922",
+      "IsPersonAccount": false
+    },
+    "newContactRecord": {
+      "sobjectType": "Contact",
+      "Salutation": "",
+      "FirstName": "Cap",
+      "LastName": "Aura1788230561922"
+    },
+    "newOpportunityRecord": {
+      "sobjectType": "Opportunity",
+      "Name": "ZZ Aura Co 1788230561922-"
+    },
+    "ownerId": "005jV000000lvUHQAY",
+    "convertedStatus": "Closed - Converted",
+    "overwriteLeadSource": false,
+    "doNotCreateOpportunity": false,
+    "bypassAccountDedupeCheck": false,
+    "bypassContactDedupeCheck": false,
+    "recordSaveParams": {
+      "bypassDedupeCheck": false
+    }
+  }
+}

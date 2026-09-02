@@ -1,0 +1,112 @@
+{
+  "actions": [
+    {
+      "id": "1441;a",
+      "state": "SUCCESS",
+      "returnValue": {
+        "accountId": "001jV000004HrATQA0",
+        "opportunityId": "006jV000000ZP3ZQAW",
+        "contactId": "003jV000004c7HVQAY",
+        "isPersonAccount": false,
+        "hasError": false
+      },
+      "error": []
+    }
+  ],
+  "context": {
+    "mode": "PROD",
+    "app": "one:one",
+    "pathPrefix": "",
+    "fwuid": "MzNzN1lSdDZQRXpUcEpsWHBlZGd5UWtVMjdnTGFERUU2S3FfSVdrcU92bkExNC4xOTIuODM4ODYwOA",
+    "mlr": 1,
+    "uad": 1,
+    "coos": 1,
+    "loaded": {
+      "APPLICATION@markup://one:one": "4201_cosqjC9sbGVckqXaecWvug"
+    },
+    "globalValueProviders": [
+      {
+        "type": "$Global",
+        "values": {
+          "eswConfigDeveloperName": {
+            "writable": true,
+            "defaultValue": ""
+          },
+          "isVoiceOver": {
+            "writable": true,
+            "defaultValue": false
+          },
+          "setupAppContextId": {
+            "writable": true,
+            "defaultValue": ""
+          },
+          "density": {
+            "writable": true,
+            "defaultValue": ""
+          },
+          "srcdoc": {
+            "writable": false,
+            "defaultValue": false
+          },
+          "appContextId": {
+            "writable": true,
+            "defaultValue": ""
+          },
+          "dynamicTypeSize": {
+            "writable": true,
+            "defaultValue": ""
+          }
+        }
+      }
+    ],
+    "enableAccessChecks": true,
+    "dns": "c",
+    "ls": 1,
+    "lairn": [],
+    "laerc": [],
+    "lav": "67",
+    "ln": 1,
+    "csp": 1,
+    "lgef": [
+      "com.salesforce.locker.enableImmediateGlobalObjectPatching",
+      "com.salesforce.locker.enableTrustedTypesScript",
+      "com.salesforce.locker.changesSince.258",
+      "com.salesforce.locker.changesSince.256",
+      "com.salesforce.locker.enabledChangesSince.256",
+      "com.salesforce.locker.temporaryGate",
+      "com.salesforce.locker.changesSince.262",
+      "com.salesforce.locker.enableSfdcLiveObject"
+    ],
+    "ch": "https://b.static.lightning.force.com/usa1336.sfdc-mra0g0",
+    "cfcsd": "https://a.static.lightning.force.com/usa1336.sfdc-mra0g0",
+    "cpf": 5,
+    "mna": {
+      "lightning": "interop"
+    },
+    "arse": 1,
+    "acaf": 1,
+    "icld": 1,
+    "ccv": "59677741",
+    "services": [
+      "markup://force:initServiceSfdc",
+      "markup://lightning:configProvider",
+      "markup://force:salesforceScopedModuleResolver",
+      "markup://force:ldsEngineCreator",
+      "markup://instrumentation:locatorService",
+      "markup://force:lwcReportingService",
+      "markup://force:lwcScopedModuleResolver"
+    ]
+  },
+  "perfSummary": {
+    "version": "core",
+    "request": 699,
+    "actions": {
+      "1441;a": {
+        "total": 665,
+        "db": 328
+      }
+    },
+    "actionsTotal": 665,
+    "overhead": 0
+  }
+}
