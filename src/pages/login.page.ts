@@ -20,14 +20,15 @@ export function hideSecretFromUrl(url: string): string {
  * Page object representing the Salesforce Login and identity verification screens.
  */
 export class LoginPage extends BasePage {
-  // ── Login screen locators ──────────────────────────────────────────────────
-  readonly usernameBox = this.page.locator('#username');
-  private readonly passwordBox = this.page.locator('#password');
+  // Login form locators
+  readonly usernameInput = this.page.locator('#username');
+  readonly usernameBox = this.usernameInput;
+  private readonly passwordInput = this.page.locator('#password');
   private readonly logInButton = this.page.locator('#Login');
   private readonly errorText = this.page.locator('#error, .loginError');
 
-  // ── Verification screen locators ───────────────────────────────────────────
-  private readonly verificationCodeBox = this.page.locator('#emc, input[name="emc"]').first();
+  // Verification screen locators
+  private readonly verificationCodeInput = this.page.locator('#emc, input[name="emc"]').first();
   private readonly verifyButton = this.page.locator('#save, input[value="Verify"]').first();
 
   /**
@@ -45,7 +46,10 @@ export class LoginPage extends BasePage {
    * @returns True if verification code input is visible, false otherwise
    */
   async isAskingForEmailCode(): Promise<boolean> {
-    const isAsking = await this.isElementVisible(this.verificationCodeBox, TIMEOUTS.SCREEN_APPEARS);
+    const isAsking = await this.isElementVisible(
+      this.verificationCodeInput,
+      TIMEOUTS.SCREEN_APPEARS
+    );
     this.log.info('Identity verification prompt status', { isAsking });
     return isAsking;
   }
@@ -62,7 +66,7 @@ export class LoginPage extends BasePage {
     await this.page.goto(`${loginUrl}/`, { waitUntil: 'domcontentloaded' });
 
     const loginFormAppeared = await this.isElementVisible(
-      this.usernameBox,
+      this.usernameInput,
       TIMEOUTS.SCREEN_APPEARS
     );
     if (!loginFormAppeared) {
@@ -85,9 +89,9 @@ export class LoginPage extends BasePage {
   ): Promise<void> {
     this.log.info('Submitting username and password credentials', { username });
 
-    await this.fill(this.usernameBox, username);
+    await this.fill(this.usernameInput, username);
     await this.clickLoginButton();
-    await this.fill(this.passwordBox, password);
+    await this.fill(this.passwordInput, password);
 
     await prepareForVerificationEmail?.();
     await this.clickLoginButton();
@@ -100,7 +104,7 @@ export class LoginPage extends BasePage {
    */
   async enterEmailCode(code: string): Promise<void> {
     this.log.info('Submitting email verification code');
-    await this.fill(this.verificationCodeBox, code);
+    await this.fill(this.verificationCodeInput, code);
     await this.clickLoginButton(this.verifyButton);
   }
 

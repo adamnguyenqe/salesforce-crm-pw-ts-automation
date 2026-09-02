@@ -13,7 +13,7 @@ export class AppLauncherPage extends BasePage {
     'one-app-launcher-header button[title="App Launcher"]'
   );
 
-  private readonly searchBox = this.page.getByPlaceholder('Search apps and items...');
+  private readonly searchInput = this.page.getByPlaceholder('Search apps and items...');
 
   /**
    * Opens the App Launcher panel overlay.
@@ -22,7 +22,7 @@ export class AppLauncherPage extends BasePage {
     const panel = this.page.locator('one-app-launcher-menu');
 
     for (let attempt = 1; attempt <= OPEN_ATTEMPTS; attempt++) {
-      if (await this.isElementVisible(this.searchBox, TIMEOUTS.SCREEN_APPEARS)) {
+      if (await this.isElementVisible(this.searchInput, TIMEOUTS.SCREEN_APPEARS)) {
         return;
       }
 
@@ -37,7 +37,7 @@ export class AppLauncherPage extends BasePage {
       await this.click(this.launcherButton);
     }
 
-    await this.searchBox.waitFor({ state: 'visible', timeout: TIMEOUTS.SCREEN_APPEARS });
+    await this.searchInput.waitFor({ state: 'visible', timeout: TIMEOUTS.SCREEN_APPEARS });
   }
 
   /**
@@ -49,7 +49,7 @@ export class AppLauncherPage extends BasePage {
     this.log.info('Switching application via App Launcher', { appName });
 
     await this.openPanel();
-    await this.fill(this.searchBox, appName);
+    await this.fill(this.searchInput, appName);
 
     const appLink = this.page
       .locator('one-app-launcher-menu-item a')
@@ -63,8 +63,8 @@ export class AppLauncherPage extends BasePage {
       }
 
       this.log.info('App item search result not visible yet, retrying query', { appName, attempt });
-      await this.clearInputElementAndWait(this.searchBox);
-      await this.fill(this.searchBox, appName);
+      await this.clearInput(this.searchInput);
+      await this.fill(this.searchInput, appName);
     }
 
     await appLink.first().waitFor({ state: 'visible', timeout: TIMEOUTS.SCREEN_APPEARS });

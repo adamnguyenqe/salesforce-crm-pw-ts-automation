@@ -23,12 +23,12 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
       leadData,
       cleanup
     }) => {
-      await test.step('Navigate to Sales application via App Launcher', async () => {
+      await test.step('Step 1: Go to the Sales App via App Launcher', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await appLauncher.openApp('Sales');
       });
 
-      await test.step('Create a new Lead with randomized data attributes', async () => {
+      await test.step('Step 2: Create a new Lead with randomly generated details', async () => {
         await leadListPage.open();
         await leadListPage.startNewLead();
 
@@ -36,7 +36,7 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
         await leadFormPage.fillForm(leadData);
       });
 
-      await test.step('Save Lead record and await detail view render', async () => {
+      await test.step('Step 3: Save the Lead and wait for detail view', async () => {
         await leadFormPage.save();
         await leadDetailPage.waitUntilLoaded();
       });
@@ -44,29 +44,24 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
       const leadId = leadDetailPage.getRecordId();
       cleanup.add('Lead', leadId);
 
-      await test.step('Validate Lead record ID format (18 characters) and REST API record existence', async () => {
+      await test.step('Step 4: Validate unique 18-digit Lead ID and details view data (UI & API)', async () => {
         expect(leadId).toHaveLength(RECORD_ID_LENGTH);
         expect(leadId).toMatch(ID_PATTERNS.LEAD);
 
-        const savedLead = await getRecord('Lead', leadId, ['Id', 'Company', 'Email']);
-
+        const savedLead = await getRecord('Lead', leadId, ['Id', 'Company', 'Email', 'Status']);
         expect(savedLead.Id).toBe(leadId);
-      });
-
-      await test.step('Validate field values in UI details view against created data', async () => {
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.COMPANY)).toBe(leadData.company);
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.EMAIL)).toBe(leadData.email);
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.LEAD_SOURCE)).toBe(
           leadData.leadSource
         );
 
-        const savedLead = await getRecord('Lead', leadId, ['Company', 'Email', 'Status']);
         expect(savedLead.Company).toBe(leadData.company);
         expect(savedLead.Email).toBe(leadData.email);
         expect(savedLead.Status).toBe(LEAD_STATUSES.NEW);
       });
 
-      await test.step('Update Lead Status inline from Details view', async () => {
+      await test.step('Step 5: Edit the Lead — change Status inline', async () => {
         await leadDetailPage.editPicklistInline(
           LEAD_FIELDS.STATUS,
           FIELD_LABELS.LEAD_STATUS,
@@ -74,7 +69,7 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
         );
       });
 
-      await test.step('Verify updated Status in UI and via REST API query', async () => {
+      await test.step('Step 6: Validate that the status updated correctly (UI & API)', async () => {
         await expect
           .poll(() => leadDetailPage.getFieldValue(LEAD_FIELDS.STATUS))
           .toBe(LEAD_STATUSES.WORKING);
@@ -110,13 +105,13 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
         });
 
       const leadId =
-        await test.step('Seed Lead matching existing Account and Contact details', async () => {
+        await test.step('Pre-condition: Seed Lead matching existing Account and Contact details', async () => {
           const id = await createRecord('Lead', toApiFields(leadData), true);
           cleanup.add('Lead', id);
           return id;
         });
 
-      await test.step('Open Convert modal from Lead detail view', async () => {
+      await test.step('Step 1: Convert the Lead — click the Convert button', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await page.goto(new URL(`/lightning/r/Lead/${leadId}/view`, page.url()).toString(), {
           waitUntil: 'domcontentloaded'
@@ -133,7 +128,7 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
         });
       });
 
-      await test.step('Select existing Account and Contact branches in conversion modal', async () => {
+      await test.step('Step 2: In the conversion modal, check existence and link to existing Account and Contact', async () => {
         await convertModal.chooseExistingAccount(leadData.company);
         await convertModal.chooseExistingContact(`${leadData.firstName} ${leadData.lastName}`);
 
@@ -143,7 +138,7 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
         });
       });
 
-      await test.step('Submit conversion and validate Opportunity, Account, and Contact linkages', async () => {
+      await test.step('Step 3: Validate Opportunity, Account, and Contact linkages', async () => {
         await convertModal.convert();
 
         const converted = await getRecord('Lead', leadId, [
@@ -156,11 +151,27 @@ test.describe('Lead Lifecycle & Conversion — API-Seeded Flows', () => {
 
         const opportunityId = String(converted.ConvertedOpportunityId);
         cleanup.add('Opportunity', opportunityId);
+      });
 
+      await test.step('Step 4: Navigate to the newly created Opportunity page', async () => {
+        const converted = await getRecord('Lead', leadId, ['ConvertedOpportunityId']);
+        const opportunityId = String(converted.ConvertedOpportunityId);
         await opportunityPage.open(opportunityId);
 
         expect(opportunityId).toHaveLength(RECORD_ID_LENGTH);
         expect(opportunityId).toMatch(ID_PATTERNS.OPPORTUNITY);
+      });
+
+      await test.step('Step 5: Validate key values (Opportunity Owner, Stage, Account)', async () => {
+        const converted = await getRecord('Lead', leadId, [
+          'Status',
+          'IsConverted',
+          'ConvertedAccountId',
+          'ConvertedContactId',
+          'ConvertedOpportunityId'
+        ]);
+        const opportunityId = String(converted.ConvertedOpportunityId);
+
         expect(await opportunityPage.getFieldValue(OPPORTUNITY_FIELDS.ACCOUNT)).toBe(
           leadData.company
         );

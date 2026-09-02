@@ -1,6 +1,6 @@
 /** Application and test timeout configurations (in milliseconds). */
 export const TIMEOUTS = {
-  // ── Element & UI Interactions ──────────────────────────────────────────────
+  // Element & UI Interactions
   /** Quick lookup for elements already present in DOM (e.g. error labels). */
   SMALL_TIMEOUT: 2_000,
 
@@ -13,15 +13,15 @@ export const TIMEOUTS = {
   /** Extended timeout for full Salesforce Lightning page transitions and initial app loads. */
   SALESFORCE_LOADING: 60_000,
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
+  // Navigation
   /** Maximum duration for page navigation and redirect chains. */
   NAVIGATION: 30_000,
 
-  // ── Email & MFA ────────────────────────────────────────────────────────────
+  // Email & MFA
   /** Maximum window for email verification code arrival and IMAP retrieval. */
   OTP_DELIVERY: 120_000,
 
-  // ── Test Execution ─────────────────────────────────────────────────────────
+  // Test Execution
   /** Default assertion timeout. */
   ASSERTION_TIMEOUT: 15_000,
 

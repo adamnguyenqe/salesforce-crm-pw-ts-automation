@@ -8,13 +8,13 @@ test.describe('Lead Conversion — Aura Action Response Interception', () => {
     'TC03: Validates conversion Aura response payload and verify created entity IDs',
     { tag: [Tags.PART_B, Tags.CONVERSION, Tags.API] },
     async ({ page, leadDetailPage, convertModal, leadData, cleanup }) => {
-      const leadId = await test.step('Seed Lead record via REST API', async () => {
+      const leadId = await test.step('Pre-condition: Seed a Lead record via REST API', async () => {
         const id = await createRecord('Lead', toApiFields(leadData));
         cleanup.add('Lead', id);
         return id;
       });
 
-      await test.step('Navigate to Lead detail view and open Convert modal', async () => {
+      await test.step('Step 1: Open conversion modal from Lead detail view', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await page.goto(new URL(`/lightning/r/Lead/${leadId}/view`, page.url()).toString(), {
           waitUntil: 'domcontentloaded'
@@ -25,17 +25,14 @@ test.describe('Lead Conversion — Aura Action Response Interception', () => {
       });
 
       const responseBody =
-        await test.step('Trigger conversion and intercept Aura action response', async () =>
+        await test.step('Step 2: Trigger conversion and capture backend Aura XHR response', async () =>
           convertModal.convertAndCaptureResponse());
 
-      await test.step('Verify Aura envelope structure and SUCCESS status', async () => {
+      await test.step('Step 3: Assert deep properties in JSON response (Aura state & converted entity IDs)', async () => {
         const envelope = parseAuraEnvelope(responseBody);
-
         expect(envelope.actions.length).toBeGreaterThan(0);
         expect(envelope.actions[0]?.state).toBe('SUCCESS');
-      });
 
-      await test.step('Validate return values for Account, Contact, and Opportunity', async () => {
         const result = readLeadConversionResult(responseBody);
 
         expect(result.opportunityId).toBeDefined();
@@ -51,7 +48,7 @@ test.describe('Lead Conversion — Aura Action Response Interception', () => {
         cleanup.add('Account', result.accountId);
       });
 
-      await test.step('Cross-check conversion entity linkages via REST API', async () => {
+      await test.step('Step 4: Cross-check converted record linkages via REST API', async () => {
         const result = readLeadConversionResult(responseBody);
         const convertedLead = await getRecord('Lead', leadId, [
           'Status',

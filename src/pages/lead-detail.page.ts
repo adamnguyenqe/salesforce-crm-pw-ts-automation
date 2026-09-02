@@ -60,10 +60,17 @@ export class LeadDetailPage extends RecordPage {
   }
 
   /**
-   * Triggers the Convert action from the page action overflow menu.
+   * Triggers the Convert action from the top actions bar or overflow menu.
    */
   async startConverting(): Promise<void> {
     this.log.info('Triggering Lead conversion modal');
+
+    const directButton = this.page.getByRole('button', { name: 'Convert', exact: true });
+    if (await this.isElementVisible(directButton, TIMEOUTS.SMALL_TIMEOUT)) {
+      await this.click(directButton);
+      return;
+    }
+
     await this.click(this.moreActionsButton.first());
     await this.click(this.page.getByRole('menuitem', { name: 'Convert' }).first());
   }

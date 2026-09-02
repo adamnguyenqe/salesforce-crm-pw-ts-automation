@@ -13,26 +13,27 @@ export interface ConversionBranches {
 }
 
 /**
- * Page object representing the Salesforce 'Convert Lead' modal dialog.
+ * Page object for the Salesforce 'Convert Lead' modal dialog.
  */
 export class LeadConvertModalPage extends BasePage {
   private readonly convertButton = this.modal.getByRole('button', { name: 'Convert', exact: true });
-  private readonly accountSearchBox = this.modal.getByPlaceholder('Search for matching accounts');
-  private readonly contactSearchBox = this.modal.getByPlaceholder('Search for matching contacts');
+  private readonly accountSearchInput = this.modal.getByPlaceholder('Search for matching accounts');
+  private readonly contactSearchInput = this.modal.getByPlaceholder('Search for matching contacts');
 
-  /** Heading element displayed on successful conversion screen. */
+  /** Heading element displayed on the success confirmation screen. */
   private readonly successHeading = this.page.getByText('Your lead has been converted');
 
   /**
-   * Waits for the Convert Lead modal to open and render initial match queries.
+   * Waits for the Convert Lead modal to open and initial match queries to settle.
    */
   async waitUntilPopupOpen(): Promise<void> {
     await this.modal.waitFor({ state: 'visible', timeout: TIMEOUTS.SALESFORCE_LOADING });
     await this.convertButton.waitFor({ state: 'visible', timeout: TIMEOUTS.SCREEN_APPEARS });
 
-    await this.modal
-      .getByText(/\d+ Account Match/)
-      .last()
+    // Salesforce renders each match count twice (visible summary vs hidden assistive-text).
+    // Wait on the visible summary rather than relying on DOM ordering.
+    await this.matchCountLabel('Account')
+      .first()
       .waitFor({ state: 'visible', timeout: TIMEOUTS.SALESFORCE_LOADING })
       .catch(() => this.log.warn('Account match count indicator not rendered in time'));
 
@@ -65,7 +66,7 @@ export class LeadConvertModalPage extends BasePage {
   }
 
   /**
-   * Selects a conversion radio option by its accessible name.
+   * Selects a conversion radio option by its accessible label.
    *
    * @param optionLabel - Display text of the radio option (e.g. 'Choose Existing Account')
    */
@@ -75,25 +76,36 @@ export class LeadConvertModalPage extends BasePage {
   }
 
   /**
+   * Locates the visible match-count label for an sObject (Account or Contact).
+   * Filters specifically for visible text to avoid hidden assistive duplicate nodes.
+   *
+   * @param objectName - Target sObject ('Account' or 'Contact')
+   */
+  private matchCountLabel(objectName: 'Account' | 'Contact'): Locator {
+    return this.modal.getByText(new RegExp(`\\d+ ${objectName} Match`)).filter({ visible: true });
+  }
+
+  /**
    * Retrieves the matched record count displayed in the modal header for an sObject.
    *
    * @param objectName - Target sObject ('Account' or 'Contact')
-   * @returns Match count integer (0 if none found)
+   * @returns Number of matching records (0 if none found)
    */
   async getMatchCount(objectName: 'Account' | 'Contact'): Promise<number> {
-    const matchLabel = this.modal.getByText(new RegExp(`\\d+ ${objectName} Match`)).last();
-    const countAppeared = await this.isElementVisible(matchLabel, TIMEOUTS.SCREEN_APPEARS);
-    if (!countAppeared) {
+    const matchLabel = this.matchCountLabel(objectName).first();
+    const isVisible = await this.isElementVisible(matchLabel, TIMEOUTS.SCREEN_APPEARS);
+    if (!isVisible) {
       this.log.warn('Match count text not visible', { objectName });
       return 0;
     }
 
     const text = await matchLabel.innerText();
-    return Number(/(\d+)/.exec(text)?.[1] ?? 0);
+    const countMatch = text.match(/\d+/);
+    return countMatch ? parseInt(countMatch[0], 10) : 0;
   }
 
   /**
-   * Configures modal to associate the Lead with an existing Account by name.
+   * Associates the Lead with an existing Account by searching its name.
    *
    * @param accountName - Name of the existing Account
    */
@@ -101,7 +113,7 @@ export class LeadConvertModalPage extends BasePage {
     this.log.info('Associating Lead with existing Account', { accountName });
 
     await this.chooseOption('Choose Existing Account');
-    await this.fill(this.accountSearchBox, accountName);
+    await this.fill(this.accountSearchInput, accountName);
 
     const suggestion = this.page.getByRole('option', { name: accountName, exact: true });
     await suggestion.first().waitFor({ state: 'visible', timeout: TIMEOUTS.SCREEN_APPEARS });
@@ -111,9 +123,9 @@ export class LeadConvertModalPage extends BasePage {
   }
 
   /**
-   * Configures modal to associate the Lead with an existing Contact.
+   * Associates the Lead with an existing Contact, selecting match card or searching.
    *
-   * @param contactName - Contact full name to link
+   * @param contactName - Full name of the Contact to link
    */
   async chooseExistingContact(contactName: string): Promise<void> {
     this.log.info('Associating Lead with existing Contact', { contactName });
@@ -122,16 +134,16 @@ export class LeadConvertModalPage extends BasePage {
 
     const surname = contactName.trim().split(/\s+/).pop() ?? contactName;
     const matchCard = this.modal.getByRole('radio', { name: new RegExp(surname) }).last();
-    const cardIsThere = await matchCard
+    const hasMatchCard = await matchCard
       .waitFor({ state: 'attached', timeout: TIMEOUTS.SCREEN_APPEARS })
       .then(() => true)
       .catch(() => false);
 
-    if (cardIsThere) {
+    if (hasMatchCard) {
       await this.selectRadio(matchCard);
     } else {
       this.log.info('Match card not present; searching contact by surname', { surname });
-      await this.fill(this.contactSearchBox, surname);
+      await this.fill(this.contactSearchInput, surname);
       await this.click(this.page.getByRole('option', { name: new RegExp(surname) }).first());
     }
 
@@ -139,21 +151,78 @@ export class LeadConvertModalPage extends BasePage {
   }
 
   /**
+   * Selects the 'Create New Account' branch in the conversion modal.
+   */
+  async chooseNewAccount(): Promise<void> {
+    this.log.info('Selecting Create New Account branch');
+    await this.chooseOption('Create New Account');
+  }
+
+  /**
+   * Selects the 'Create New Contact' branch in the conversion modal.
+   */
+  async chooseNewContact(): Promise<void> {
+    this.log.info('Selecting Create New Contact branch');
+    await this.chooseOption('Create New Contact');
+  }
+
+  /**
+   * Sets the conversion branch for Account ('new' or 'existing').
+   *
+   * @param choice - 'new' to create Account, 'existing' to link existing record
+   * @param accountName - Name of the existing Account (required when choice is 'existing')
+   */
+  async setAccountBranch(choice: ConversionChoice, accountName?: string): Promise<void> {
+    if (choice === 'new') {
+      await this.chooseNewAccount();
+      return;
+    }
+
+    if (!accountName) {
+      throw new Error("An account name is required to choose the 'existing' Account branch.");
+    }
+    await this.chooseExistingAccount(accountName);
+  }
+
+  /**
+   * Sets the conversion branch for Contact ('new' or 'existing').
+   *
+   * @param choice - 'new' to create Contact, 'existing' to link existing record
+   * @param contactName - Full name of the existing Contact (required when choice is 'existing')
+   */
+  async setContactBranch(choice: ConversionChoice, contactName?: string): Promise<void> {
+    if (choice === 'new') {
+      await this.chooseNewContact();
+      return;
+    }
+
+    if (!contactName) {
+      throw new Error("A contact name is required to choose the 'existing' Contact branch.");
+    }
+    await this.chooseExistingContact(contactName);
+  }
+
+  /**
    * Reads currently active radio options for Account and Contact creation branches.
    *
-   * @returns Object indicating 'existing' or 'new' for account and contact
+   * @returns Object indicating 'existing' or 'new' for both account and contact
    */
   async readChosenBranches(): Promise<ConversionBranches> {
-    const isSelected = (optionLabel: string): Promise<boolean> =>
+    const isRadioChecked = (label: string): Promise<boolean> =>
       this.modal
-        .getByRole('radio', { name: optionLabel, exact: true })
+        .getByRole('radio', { name: label, exact: true })
         .first()
         .isChecked()
         .catch(() => false);
 
+    const [hasExistingAccount, hasExistingContact] = await Promise.all([
+      isRadioChecked('Choose Existing Account'),
+      isRadioChecked('Choose Existing Contact')
+    ]);
+
     const branches: ConversionBranches = {
-      account: (await isSelected('Choose Existing Account')) ? 'existing' : 'new',
-      contact: (await isSelected('Choose Existing Contact')) ? 'existing' : 'new'
+      account: hasExistingAccount ? 'existing' : 'new',
+      contact: hasExistingContact ? 'existing' : 'new'
     };
 
     this.log.info('Current conversion configuration', branches);
@@ -178,7 +247,7 @@ export class LeadConvertModalPage extends BasePage {
   /**
    * Submits conversion while intercepting and returning the raw Aura response payload.
    *
-   * @returns Raw HTTP response body text of the convertLeadServer Aura action
+   * @returns Raw HTTP response body string of the convertLeadServer Aura action
    */
   async convertAndCaptureResponse(): Promise<string> {
     this.log.info('Submitting conversion and capturing Aura response');

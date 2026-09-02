@@ -8,8 +8,8 @@ import { BasePage } from './base.page';
  */
 export class LeadFormPage extends BasePage {
   private readonly cancelButton = this.page.getByRole('button', { name: 'Cancel', exact: true });
-  private readonly firstNameBox = this.textField(LEAD_FIELDS.NAME).first();
-  private readonly lastNameBox = this.textField(LEAD_FIELDS.NAME).last();
+  private readonly firstNameInput = this.textField(LEAD_FIELDS.NAME).first();
+  private readonly lastNameInput = this.textField(LEAD_FIELDS.NAME).last();
 
   /**
    * Checks whether the Lead form modal is visible and ready for interaction.
@@ -17,7 +17,7 @@ export class LeadFormPage extends BasePage {
    * @returns True if visible, false otherwise
    */
   async isOpen(): Promise<boolean> {
-    return this.isElementVisible(this.lastNameBox, TIMEOUTS.SCREEN_APPEARS);
+    return this.isElementVisible(this.lastNameInput, TIMEOUTS.SCREEN_APPEARS);
   }
 
   /**
@@ -28,18 +28,18 @@ export class LeadFormPage extends BasePage {
   async fillForm(lead: Partial<LeadData>): Promise<void> {
     this.log.info('Populating Lead form fields', { company: lead.company });
 
-    const textBoxes = [
-      [this.firstNameBox, lead.firstName],
-      [this.lastNameBox, lead.lastName],
+    const formInputs = [
+      [this.firstNameInput, lead.firstName],
+      [this.lastNameInput, lead.lastName],
       [this.textField(LEAD_FIELDS.COMPANY).first(), lead.company],
       [this.textField(LEAD_FIELDS.EMAIL).first(), lead.email],
       [this.textField(LEAD_FIELDS.PHONE).first(), lead.phone],
       [this.textField(LEAD_FIELDS.TITLE).first(), lead.title]
     ] as const;
 
-    for (const [box, value] of textBoxes) {
+    for (const [input, value] of formInputs) {
       if (value !== undefined) {
-        await this.fill(box, value);
+        await this.fill(input, value);
       }
     }
 
@@ -70,7 +70,6 @@ export class LeadFormPage extends BasePage {
    * Dismisses duplicate warning dialogs if prompted and re-triggers save.
    */
   private async confirmSaveIfDuplicateWarned(): Promise<void> {
-    const warningDialog = this.page.getByRole('dialog', { name: 'Similar Records Exist' });
     const savedCleanly = await this.page
       .waitForURL(RECORD_PAGE_URL_PATTERN, { timeout: TIMEOUTS.SCREEN_APPEARS })
       .then(() => true)
@@ -80,24 +79,9 @@ export class LeadFormPage extends BasePage {
       return;
     }
 
-    const wasWarned = await this.isElementVisible(warningDialog.first(), TIMEOUTS.SCREEN_APPEARS);
-    if (!wasWarned) {
-      return;
+    if (await this.dismissDuplicateWarning()) {
+      await this.click(this.saveButton);
     }
-
-    this.log.info('Duplicate record warning encountered; dismissing dialog and proceeding');
-    for (const closeButton of await this.page
-      .getByRole('button', { name: 'Close error dialog' })
-      .all()) {
-      await closeButton.click({ timeout: TIMEOUTS.SCREEN_APPEARS }).catch(() => undefined);
-    }
-
-    await warningDialog
-      .first()
-      .waitFor({ state: 'hidden', timeout: TIMEOUTS.SCREEN_APPEARS })
-      .catch(() => this.log.debug('Duplicate warning dialog still visible'));
-
-    await this.click(this.saveButton);
   }
 
   /** Cancels and closes the Lead modal form without saving. */

@@ -79,9 +79,9 @@ export class RecordFormPage extends BasePage {
     fieldLabel: string,
     recordName: string
   ): Promise<void> {
-    const lookupBox = this.field(apiName).getByRole('combobox', { name: fieldLabel }).first();
+    const lookupInput = this.field(apiName).getByRole('combobox', { name: fieldLabel }).first();
     for (let attempt = 1; attempt <= LOOKUP_ATTEMPTS; attempt++) {
-      await this.fill(lookupBox, recordName);
+      await this.fill(lookupInput, recordName);
 
       const suggestion = this.page.getByRole('option', { name: recordName, exact: true });
       const suggestionAppeared = await this.isElementVisible(
@@ -90,12 +90,25 @@ export class RecordFormPage extends BasePage {
       );
 
       if (suggestionAppeared) {
-        await this.click(suggestion.first());
-        return;
-      }
+        // Salesforce re-renders the dropdown as debounced search results land, so a
+        // located option can go stale before it is clicked. Treat a failed click as
+        // a retryable outcome rather than letting it fail the whole test.
+        const clicked = await this.click(suggestion.first())
+          .then(() => true)
+          .catch(() => false);
 
-      this.log.debug('Lookup option not found, retrying search', { apiName, attempt });
-      await this.clearInputElementAndWait(lookupBox);
+        if (clicked) {
+          return;
+        }
+
+        this.log.debug('Lookup option went stale before it could be clicked; retrying', {
+          apiName,
+          attempt
+        });
+      } else {
+        this.log.debug('Lookup option not found, retrying search', { apiName, attempt });
+      }
+      await this.clearInput(lookupInput);
     }
 
     throw new Error(
@@ -109,10 +122,26 @@ export class RecordFormPage extends BasePage {
    * @returns 18-character Salesforce record ID
    */
   private async saveAndReadId(): Promise<string> {
+    // A duplicate rule can raise 'Similar Records Exist' as soon as the form is
+    // filled, overlaying the Save button before it is ever clicked.
+    await this.dismissDuplicateWarning(TIMEOUTS.SMALL_TIMEOUT);
     await this.click(this.saveButton);
-    await this.page.waitForURL(RECORD_PAGE_URL_PATTERN, {
-      timeout: TIMEOUTS.SALESFORCE_LOADING
-    });
+
+    // The same dialog can also appear in response to the save itself. Only look for
+    // it when the save did not navigate, so a clean save costs no extra wait.
+    const savedCleanly = await this.page
+      .waitForURL(RECORD_PAGE_URL_PATTERN, { timeout: TIMEOUTS.SCREEN_APPEARS })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!savedCleanly) {
+      if (await this.dismissDuplicateWarning()) {
+        await this.click(this.saveButton);
+      }
+      await this.page.waitForURL(RECORD_PAGE_URL_PATTERN, {
+        timeout: TIMEOUTS.SALESFORCE_LOADING
+      });
+    }
 
     const recordId = extractRecordIdFromUrl(this.currentUrl);
     if (!recordId) {

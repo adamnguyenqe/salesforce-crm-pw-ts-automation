@@ -86,22 +86,22 @@ function readSetting(settingName: string, fallback = ''): string {
 const orgUrl = readOrgUrl();
 
 export const env = {
-  // ── Execution Context ──────────────────────────────────────────────────────
+  // Execution Context
   environmentName,
   instanceUrl: orgUrl,
   logLevel: readSetting('LOG_LEVEL', 'DEBUG'),
 
-  // ── Salesforce UI Credentials ──────────────────────────────────────────────
+  // Salesforce UI Credentials
   sfUsername: readSetting('SF_USERNAME'),
   sfPassword: readSetting('SF_PASSWORD'),
 
-  // ── OAuth 2.0 JWT Bearer Configuration ─────────────────────────────────────
+  // OAuth 2.0 JWT Bearer Configuration
   sfClientId: readSetting('SF_CLIENT_ID'),
   sfPrivateKey: readSetting('SF_PRIVATE_KEY'),
   sfJwtAudience: readSetting('SF_JWT_AUDIENCE') || orgUrl,
   sfTokenHost: readSetting('SF_TOKEN_HOST') || orgUrl,
 
-  // ── IMAP Mailbox Configuration ─────────────────────────────────────────────
+  // IMAP Mailbox Configuration
   sfImapHost: readSetting('SF_IMAP_HOST'),
   sfImapPort: Number(readSetting('SF_IMAP_PORT', '993')),
   sfImapUser: readSetting('SF_IMAP_USER'),

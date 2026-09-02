@@ -36,12 +36,12 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
       leadData,
       cleanup
     }) => {
-      await test.step('Navigate to Sales application via App Launcher', async () => {
+      await test.step('Step 1: Go to the Sales App via App Launcher', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await appLauncher.openApp('Sales');
       });
 
-      await test.step('Create a new Lead with randomized data attributes', async () => {
+      await test.step('Step 2: Create a new Lead with randomly generated details', async () => {
         await leadListPage.open();
         await leadListPage.startNewLead();
 
@@ -49,7 +49,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         await leadFormPage.fillForm(leadData);
       });
 
-      await test.step('Save Lead record and await detail view render', async () => {
+      await test.step('Step 3: Save the Lead and wait for detail view', async () => {
         await leadFormPage.save();
         await leadDetailPage.waitUntilLoaded();
       });
@@ -57,12 +57,10 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
       const leadId = leadDetailPage.getRecordId();
       cleanup.add('Lead', leadId);
 
-      await test.step('Validate Lead record ID format (18 characters)', async () => {
+      await test.step('Step 4: Validate unique 18-digit Lead ID and correct data in details view', async () => {
         expect(leadId).toHaveLength(RECORD_ID_LENGTH);
         expect(leadId).toMatch(ID_PATTERNS.LEAD);
-      });
 
-      await test.step('Validate field values in UI details view against created data', async () => {
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.COMPANY)).toBe(leadData.company);
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.EMAIL)).toBe(leadData.email);
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.LEAD_SOURCE)).toBe(
@@ -71,7 +69,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         expect(await leadDetailPage.getFieldValue(LEAD_FIELDS.STATUS)).toBe(LEAD_STATUSES.NEW);
       });
 
-      await test.step('Update Lead Status inline from Details view', async () => {
+      await test.step('Step 5: Edit the Lead — change Status inline', async () => {
         await leadDetailPage.editPicklistInline(
           LEAD_FIELDS.STATUS,
           FIELD_LABELS.LEAD_STATUS,
@@ -79,7 +77,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         );
       });
 
-      await test.step('Verify updated Status displayed in UI', async () => {
+      await test.step('Step 6: Validate that the status updated correctly', async () => {
         await expect
           .poll(() => leadDetailPage.getFieldValue(LEAD_FIELDS.STATUS))
           .toBe(LEAD_STATUSES.WORKING);
@@ -117,7 +115,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         );
       });
 
-      await test.step('Create Lead matching existing Account and Contact details', async () => {
+      await test.step('Pre-condition: Create Lead matching existing Account and Contact details', async () => {
         await leadListPage.openNewLeadFormDirectly();
         await leadFormPage.fillForm(leadData);
         await leadFormPage.save();
@@ -126,7 +124,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         cleanup.add('Lead', leadId);
       });
 
-      await test.step('Open Convert modal from Lead detail view', async () => {
+      await test.step('Step 1: Convert the Lead — click the Convert button', async () => {
         await leadDetailPage.startConverting();
         await convertModal.waitUntilPopupOpen();
 
@@ -138,7 +136,7 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         });
       });
 
-      await test.step('Select existing Account and Contact branches in conversion modal', async () => {
+      await test.step('Step 2: In the conversion modal, check existence and link to existing Account and Contact', async () => {
         await convertModal.chooseExistingAccount(leadData.company);
         await convertModal.chooseExistingContact(`${leadData.firstName} ${leadData.lastName}`);
 
@@ -148,14 +146,21 @@ test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
         });
       });
 
-      await test.step('Submit conversion and validate Opportunity details', async () => {
+      await test.step('Step 3: Validate Opportunity, Account, and Contact linkages', async () => {
         await convertModal.convert();
         const opportunityId = await readConvertedOpportunityId(leadId);
         cleanup.add('Opportunity', opportunityId);
+      });
+
+      await test.step('Step 4: Navigate to the newly created Opportunity page', async () => {
+        const opportunityId = await readConvertedOpportunityId(leadId);
         await opportunityPage.open(opportunityId);
 
         expect(opportunityId).toHaveLength(RECORD_ID_LENGTH);
         expect(opportunityId).toMatch(ID_PATTERNS.OPPORTUNITY);
+      });
+
+      await test.step('Step 5: Validate key values (Opportunity Owner, Stage, Account)', async () => {
         expect(await opportunityPage.getFieldValue(OPPORTUNITY_FIELDS.ACCOUNT)).toBe(
           leadData.company
         );

@@ -8,23 +8,23 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
     'TC04: Prevents submission when required fields are missing and displays validation errors',
     { tag: [Tags.PART_B, Tags.NEGATIVE] },
     async ({ page, leadListPage, leadFormPage }) => {
-      await test.step('Open New Lead creation modal', async () => {
+      await test.step('Step 1: Open New Lead creation modal', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await leadListPage.openNewLeadFormDirectly();
         await expect.poll(() => leadFormPage.isOpen()).toBe(true);
       });
 
       const fieldErrors =
-        await test.step('Attempt save without providing required field values', async () =>
+        await test.step('Step 2: Attempt save without providing required field values', async () =>
           leadFormPage.saveExpectingErrors());
 
-      await test.step('Verify field-level error messages for required inputs', async () => {
+      await test.step('Step 3: Verify field-level validation errors are shown', async () => {
         expect(fieldErrors.join(' | ')).toContain('Last Name');
         expect(fieldErrors.join(' | ')).toContain('Company');
         expect(fieldErrors.some((error) => /Complete this field/i.test(error))).toBe(true);
       });
 
-      await test.step('Verify top-level error banner summary is displayed', async () => {
+      await test.step('Step 4: Verify top-level error banner summary is displayed', async () => {
         const banner = await leadFormPage.getErrorBanner();
 
         expect(banner).not.toBe('');
@@ -32,7 +32,7 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
         expect(banner).toContain('Company');
       });
 
-      await test.step('Verify record was not committed to database', async () => {
+      await test.step('Step 5: Verify record was not committed to database', async () => {
         expect(await leadFormPage.isOpen()).toBe(true);
 
         const leadsWithNoCompany = await query(
@@ -48,7 +48,7 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
     'TC05: Triggers duplicate warning modal when creating Lead with matching email address',
     { tag: [Tags.PART_B, Tags.NEGATIVE] },
     async ({ page, leadListPage, leadFormPage, leadData, cleanup }) => {
-      await test.step('Verify active Lead duplicate rules exist in Salesforce org', async () => {
+      await test.step('Pre-condition: Verify active Lead duplicate rules exist in Salesforce org', async () => {
         const activeRules = await query(
           'SELECT Id, DeveloperName FROM DuplicateRule ' +
             "WHERE SobjectType = 'Lead' AND IsActive = true"
@@ -61,12 +61,12 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
         );
       });
 
-      await test.step('Seed original Lead record via REST API', async () => {
+      await test.step('Pre-condition: Seed original Lead record via REST API', async () => {
         const existingLeadId = await createRecord('Lead', toApiFields(leadData));
         cleanup.add('Lead', existingLeadId);
       });
 
-      await test.step('Open creation modal and input duplicate Lead details with same email', async () => {
+      await test.step('Step 1: Open creation modal and input duplicate Lead details with same email', async () => {
         await page.goto('/', { waitUntil: 'domcontentloaded' });
         await leadListPage.openNewLeadFormDirectly();
 
@@ -75,7 +75,7 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
         await leadFormPage.fillForm(leadData);
       });
 
-      await test.step('Trigger save and verify duplicate warning dialog is displayed', async () => {
+      await test.step('Step 2: Trigger save and verify duplicate warning dialog is displayed', async () => {
         await leadFormPage.saveExpectingErrors();
 
         expect(await leadFormPage.isDuplicateWarningShown()).toBe(true);
@@ -86,7 +86,7 @@ test.describe('Lead Validation & Duplicate Rules — Negative Scenarios', () => 
         expect(warning).toMatch(/looks like an existing record/i);
       });
 
-      await test.step('Verify duplicate Lead was not committed to database', async () => {
+      await test.step('Step 3: Verify duplicate Lead was not committed to database', async () => {
         expect(await leadFormPage.isOpen()).toBe(true);
 
         const leadsWithThatEmail = await query(
