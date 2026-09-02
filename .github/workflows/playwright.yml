@@ -1,0 +1,163 @@
+name: Playwright Tests
+
+# Manual only. This workflow never starts on its own: no push or pull_request
+# trigger, so every run is one you started from the Actions tab (or `gh`),
+# choosing the tags, projects and environment for that run.
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Tags to run, e.g. "@smoke" or "@lead|@conversion". Leave blank to run everything.'
+        type: string
+        required: false
+        default: ''
+      grep_invert:
+        description: 'Tags to SKIP, e.g. "@otp". Leave blank to skip nothing.'
+        type: string
+        required: false
+        default: ''
+      projects:
+        description: 'Playwright projects, space-separated. Leave blank for all.'
+        type: string
+        required: false
+        default: ''
+      target_env:
+        description: 'Environment file to load (environments/.env.<name>)'
+        type: string
+        default: dev
+      publish_report:
+        description: 'Publish the HTML report to GitHub Pages (public URL)'
+        type: boolean
+        default: false
+
+# Each manual run gets its own concurrency group, so starting a second run
+# never cancels one already going. Runs against the same org still queue
+# rather than overlap, which keeps Salesforce test data from colliding.
+concurrency:
+  group: playwright-${{ inputs.target_env }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # action-junit-report publishes results as a check run.
+      checks: write
+    # environment: dev   # uncomment if you scope secrets to a GitHub Environment
+
+    env:
+      CI: 'true'
+      CI_TARGET_ENVIRONMENT: ${{ inputs.target_env || 'dev' }}
+
+      # Non-secret config (org URL, username, IMAP host/port/user) comes from
+      # the tracked environments/.env.<CI_TARGET_ENVIRONMENT> file.
+      # Only true secrets are injected here, from repository Secrets.
+      SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+      SF_IMAP_PASSWORD: ${{ secrets.SF_IMAP_PASSWORD }}
+      SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+      SF_PRIVATE_KEY: ${{ secrets.SF_PRIVATE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install browsers
+        run: npx playwright install --with-deps chrome webkit
+
+      - name: Build the Playwright argument list
+        id: args
+        env:
+          TAGS: ${{ inputs.tags }}
+          SKIP_TAGS: ${{ inputs.grep_invert }}
+          PROJECTS: ${{ inputs.projects }}
+        run: |
+          args=""
+
+          # Blank tags -> no --grep at all -> Playwright runs every test.
+          if [ -n "${TAGS// /}" ]; then
+            args="$args --grep=$(printf '%q' "$TAGS")"
+          fi
+
+          if [ -n "${SKIP_TAGS// /}" ]; then
+            args="$args --grep-invert=$(printf '%q' "$SKIP_TAGS")"
+          fi
+
+          for project in $PROJECTS; do
+            args="$args --project=$(printf '%q' "$project")"
+          done
+
+          echo "value=$args" >> "$GITHUB_OUTPUT"
+          echo "Running: npx playwright test$args"
+
+      - name: Run Playwright tests
+        run: npx playwright test ${{ steps.args.outputs.value }}
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: .artifacts/html-report
+          retention-days: 14
+
+      - name: Upload traces, videos and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: .artifacts/test-results
+          retention-days: 7
+
+      - name: Publish JUnit results to the run summary
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: .artifacts/junit.xml
+          check_name: Playwright results
+          detailed_summary: true
+          include_passed: false
+
+  # Only runs when you tick publish_report on the run form.
+  publish-report:
+    needs: test
+    if: ${{ !cancelled() && inputs.publish_report }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Download the report from the test job
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-html-report
+          path: html-report
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: html-report
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
