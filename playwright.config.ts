@@ -28,8 +28,7 @@ export default defineConfig({
     navigationTimeout: TIMEOUTS.NAVIGATION,
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    testIdAttribute: 'data-testid'
+    screenshot: 'only-on-failure'
   },
 
   projects: [

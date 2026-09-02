@@ -1,13 +1,9 @@
 name: Playwright Tests
 
+# Manual only. This workflow never starts on its own: no push or pull_request
+# trigger, so every run is one you started from the Actions tab (or `gh`),
+# choosing the tags, projects and environment for that run.
 on:
-  push:
-    branches:
-      - main
-      # Feature branches: lets you iterate on CI without opening a PR.
-      - 'feature/**'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
       tags:
@@ -29,10 +25,17 @@ on:
         description: 'Environment file to load (environments/.env.<name>)'
         type: string
         default: dev
+      publish_report:
+        description: 'Publish the HTML report to GitHub Pages (public URL)'
+        type: boolean
+        default: false
 
+# Each manual run gets its own concurrency group, so starting a second run
+# never cancels one already going. Runs against the same org still queue
+# rather than overlap, which keeps Salesforce test data from colliding.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: playwright-${{ inputs.target_env }}
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -127,3 +130,30 @@ jobs:
           check_name: Playwright results
           detailed_summary: true
           include_passed: false
+
+  # Only runs when you tick publish_report on the run form.
+  publish-report:
+    needs: test
+    if: ${{ !cancelled() && inputs.publish_report }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Download the report from the test job
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-html-report
+          path: html-report
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: html-report
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
