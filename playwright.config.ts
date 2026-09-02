@@ -9,7 +9,7 @@ export default defineConfig({
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : 2,
 
   timeout: TIMEOUTS.DEFAULT_E2E_FLOW,
@@ -90,7 +90,7 @@ export default defineConfig({
       }
     },
     {
-      name: 'part-b-webkit-full',
+      name: 'part-b-webkit',
       testDir: './tests/part-b',
       testIgnore: /lead-journey\.ui\.spec\.ts/,
       dependencies: ['setup'],
@@ -101,15 +101,7 @@ export default defineConfig({
       testDir: './tests/part-b',
       testMatch: /lead-journey\.ui\.spec\.ts/,
       workers: 1,
-      dependencies: ['part-b-webkit-full'],
-      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
-    },
-    {
-      name: 'part-b-webkit',
-      testDir: './tests/part-b',
-      testIgnore: /lead-journey\.ui\.spec\.ts/,
-      grep: new RegExp(Tags.SMOKE),
-      dependencies: ['setup'],
+      dependencies: ['part-b-webkit'],
       use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
     }
   ]

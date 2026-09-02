@@ -4,16 +4,16 @@
   "description": "Playwright + TypeScript UI automation framework for Salesforce CRM.",
   "author": "Adam Nguyen Hoang Diep <adam.nguyen.qe@gmail.com>",
   "scripts": {
-    "test": "playwright test",
+    "test": "npm run test:chromium",
+    "test:chromium": "playwright test --project=part-a-jwt-chromium --project=part-a-otp-chromium --project=part-b-chromium --project=part-b-ui-chromium",
+    "test:webkit": "playwright test --project=part-a-jwt-webkit --project=part-a-otp-webkit --project=part-b-webkit --project=part-b-ui-webkit",
+    "test:all": "playwright test --project=part-a-jwt-chromium --project=part-a-otp-chromium --project=part-b-chromium --project=part-b-ui-chromium --project=part-a-jwt-webkit --project=part-a-otp-webkit --project=part-b-webkit --project=part-b-ui-webkit",
+    "test:otp": "playwright test --project=part-a-otp-chromium",
     "report": "playwright show-report .artifacts/html-report",
     "trace": "playwright show-trace",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts",
-    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts",
-    "test:part-a": "playwright test --project=part-a-jwt-chromium --project=part-a-jwt-webkit",
-    "test:part-b": "playwright test --project=part-b-chromium --project=part-b-ui-chromium",
-    "test:smoke": "playwright test --grep @smoke",
-    "test:cross-browser": "playwright test --project=part-b-chromium --project=part-b-ui-chromium --project=part-b-webkit-full --project=part-b-ui-webkit"
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" playwright.config.ts"
   },
   "type": "commonjs",
   "devDependencies": {

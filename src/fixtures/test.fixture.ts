@@ -114,8 +114,21 @@ export const test = base.extend<TestFixtures>({
       }
     });
 
-    for (const record of created) {
-      await deleteRecord(record.objectName, record.recordId);
+    // Delete newest-first. Tests register parents before children (Account, then
+    // Contact, then Lead), so reverse order clears dependents.
+    const undeleted: string[] = [];
+
+    for (const record of [...created].reverse()) {
+      const deleted = await deleteRecord(record.objectName, record.recordId);
+      if (!deleted) {
+        undeleted.push(`${record.objectName} ${record.recordId}`);
+      }
+    }
+
+    if (undeleted.length > 0) {
+      throw new Error(
+        `Teardown left ${undeleted.length} record(s) in the org: ${undeleted.join(', ')}`
+      );
     }
   }
 });
