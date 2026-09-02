@@ -9,73 +9,72 @@ import {
 import { ANONYMOUS, expect, test } from '@fixtures';
 import { LoginPage } from '@pages';
 
-/**
- * Part A: Salesforce UI authentication using username, password, and email OTP verification.
- * Note: Executed serially to avoid Salesforce email OTP rate limits.
- */
-
 test.describe.configure({ mode: 'serial' });
-
-// Initialize with clean session state.
 test.use({ storageState: ANONYMOUS });
 
-const FORM_WAS_SKIPPED = 'Expected login form to be displayed.';
-const NO_CODE_WAS_ASKED_FOR = 'Expected Salesforce identity verification (OTP) prompt.';
+test.describe('Part A — Salesforce Login & Verification (Email OTP)', () => {
+  test(
+    'TC01: Authenticates with username, password, and email verification code',
+    { tag: [Tags.PART_A, Tags.OTP] },
+    async ({ page, context, loginPage, homePage, mailbox }) => {
+      test.setTimeout(TIMEOUTS.DEFAULT_E2E_FLOW);
 
-test(
-  'TC01: Authenticates with username, password, and email verification code',
-  { tag: [Tags.PART_A, Tags.OTP] },
-  async ({ page, context, loginPage, homePage, mailbox }) => {
-    test.setTimeout(TIMEOUTS.DEFAULT_E2E_FLOW);
+      await test.step('Step 1: Navigate to login page', async () => {
+        const loginFormAppeared = await loginPage.open();
+        expect(loginFormAppeared).toBe(true);
+      });
 
-    await loginPage.open();
-    await loginPage.clearSession();
+      await test.step('Step 2: Submit username and password credentials', async () => {
+        await loginPage.loginViaUsername(env.sfUsername, env.sfPassword, () =>
+          mailbox.rememberCurrentInbox()
+        );
+        expect(await loginPage.getLoginErrorText()).toBe('');
+      });
 
-    const loginFormAppeared = await loginPage.open();
-    expect(loginFormAppeared, FORM_WAS_SKIPPED).toBe(true);
+      await test.step('Step 3: Retrieve email verification code over IMAP and submit', async () => {
+        const isAskingForCode = await loginPage.isAskingForEmailCode();
+        expect(isAskingForCode).toBe(true);
 
-    await loginPage.loginViaUsername(env.sfUsername, env.sfPassword, () =>
-      mailbox.rememberCurrentInbox()
-    );
-    expect(await loginPage.getLoginErrorText()).toBe('');
+        const code = await mailbox.waitForNewCode();
+        await loginPage.enterEmailCode(code);
+        expect(await loginPage.getLoginErrorText()).toBe('');
 
-    const salesforceAskedForACode = await loginPage.isAskingForEmailCode();
-    expect(salesforceAskedForACode, NO_CODE_WAS_ASKED_FOR).toBe(true);
+        await homePage.waitUntilHomePageLoaded();
+      });
 
-    const code = await mailbox.waitForNewCode();
-    await loginPage.enterEmailCode(code);
-    expect(await loginPage.getLoginErrorText()).toBe('');
+      await test.step('Step 4: Validate successful login via global search bar and App Launcher', async () => {
+        await expect(page).toHaveURL(LIGHTNING_URL_PATTERN);
+        await expect(homePage.searchButton).toBeVisible();
+        await expect(homePage.appLauncherButton).toBeVisible();
+      });
 
-    await homePage.waitUntilHomePageLoaded();
+      await test.step('Step 5: Cache storageState so subsequent runs skip verification', async () => {
+        await context.storageState({ path: SAVED_LOGIN_FILE });
+      });
+    }
+  );
 
-    await expect(page).toHaveURL(LIGHTNING_URL_PATTERN);
-    await expect(homePage.searchButton).toBeVisible();
-    await expect(homePage.appLauncherButton).toBeVisible();
+  test(
+    'TC02: Reuses persisted storageState session without prompting for verification',
+    { tag: [Tags.PART_A, Tags.OTP] },
+    async ({ browser }) => {
+      const authContext = await browser.newContext({
+        storageState: SAVED_LOGIN_FILE
+      });
+      const page = await authContext.newPage();
 
-    // Persist storageState for subsequent session reuse.
-    await context.storageState({ path: SAVED_LOGIN_FILE });
-  }
-);
+      await test.step('Step 1: Open Salesforce using cached storageState', async () => {
+        await page.goto(`${env.instanceUrl}${HOME_PAGE_PATH}`, {
+          waitUntil: 'domcontentloaded'
+        });
+      });
 
-test(
-  'TC02: Reuses persisted storageState session without prompting for verification',
-  { tag: [Tags.PART_A, Tags.OTP] },
-  async ({ browser }) => {
-    // Validate that persisted storageState grants authenticated access.
-    const browserWithSavedLogin = await browser.newContext({
-      storageState: SAVED_LOGIN_FILE
-    });
-    const page = await browserWithSavedLogin.newPage();
+      await test.step('Step 2: Validate cached session skips verification and accesses Lightning', async () => {
+        await expect(page).toHaveURL(LIGHTNING_URL_PATTERN);
+        await expect(new LoginPage(page).usernameBox).toHaveCount(0);
+      });
 
-    await page.goto(`${env.instanceUrl}${HOME_PAGE_PATH}`, {
-      waitUntil: 'domcontentloaded'
-    });
-
-    await expect(page).toHaveURL(LIGHTNING_URL_PATTERN);
-
-    // Verify user is not redirected back to the login form.
-    await expect(new LoginPage(page).usernameBox).toHaveCount(0);
-
-    await browserWithSavedLogin.close();
-  }
-);
+      await authContext.close();
+    }
+  );
+});
