@@ -28,7 +28,8 @@ export default defineConfig({
     navigationTimeout: TIMEOUTS.NAVIGATION,
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
-    screenshot: 'only-on-failure'
+    screenshot: 'only-on-failure',
+    viewport: process.env.CI ? { width: 1920, height: 1080 } : null
   },
 
   projects: [
@@ -69,7 +70,7 @@ export default defineConfig({
     {
       name: 'part-b-chromium',
       testDir: './tests/part-b',
-      testIgnore: /lead-journey\.ui\.spec\.ts/,
+      testIgnore: /lead-(journey\.ui|negative)\.spec\.ts/,
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
@@ -92,7 +93,7 @@ export default defineConfig({
     {
       name: 'part-b-webkit',
       testDir: './tests/part-b',
-      testIgnore: /lead-journey\.ui\.spec\.ts/,
+      testIgnore: /lead-(journey\.ui|negative)\.spec\.ts/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
     },
@@ -102,6 +103,25 @@ export default defineConfig({
       testMatch: /lead-journey\.ui\.spec\.ts/,
       workers: 1,
       dependencies: ['part-b-webkit'],
+      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+    },
+
+    {
+      name: 'part-b-negative-chromium',
+      testDir: './tests/part-b',
+      testMatch: /lead-negative\.spec\.ts/,
+      dependencies: ['part-b-ui-chromium'],
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        storageState: SAVED_LOGIN_FILE
+      }
+    },
+    {
+      name: 'part-b-negative-webkit',
+      testDir: './tests/part-b',
+      testMatch: /lead-negative\.spec\.ts/,
+      dependencies: ['part-b-ui-webkit'],
       use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
     }
   ]
