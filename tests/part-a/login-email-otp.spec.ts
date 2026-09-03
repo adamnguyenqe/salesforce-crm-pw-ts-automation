@@ -2,7 +2,7 @@ import { env } from '@config';
 import {
   HOME_PAGE_PATH,
   LIGHTNING_URL_PATTERN,
-  SAVED_LOGIN_FILE,
+  savedLoginFile,
   Tags,
   TIMEOUTS
 } from '@constants';
@@ -10,6 +10,9 @@ import { ANONYMOUS, expect, test } from '@fixtures';
 import { LoginPage } from '@pages';
 
 test.describe.configure({ mode: 'serial' });
+
+/** Session cached by TC01 and replayed by TC02; kept apart from the JWT setup files. */
+const OTP_LOGIN_FILE = savedLoginFile('otp');
 test.use({ storageState: ANONYMOUS });
 
 test.describe('Part A — Salesforce Login & Verification (Email OTP)', () => {
@@ -49,7 +52,7 @@ test.describe('Part A — Salesforce Login & Verification (Email OTP)', () => {
       });
 
       await test.step('Step 5: Cache storageState so subsequent runs skip verification', async () => {
-        await context.storageState({ path: SAVED_LOGIN_FILE });
+        await context.storageState({ path: OTP_LOGIN_FILE });
       });
     }
   );
@@ -59,7 +62,7 @@ test.describe('Part A — Salesforce Login & Verification (Email OTP)', () => {
     { tag: [Tags.PART_A, Tags.OTP] },
     async ({ browser }) => {
       const authContext = await browser.newContext({
-        storageState: SAVED_LOGIN_FILE
+        storageState: OTP_LOGIN_FILE
       });
       const page = await authContext.newPage();
 

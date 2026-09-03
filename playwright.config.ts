@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { env } from './src/config';
-import { SAVED_LOGIN_FILE, Tags, TIMEOUTS } from './src/constants';
+import { savedLoginFile, Tags, TIMEOUTS } from './src/constants';
 
 export default defineConfig({
   testDir: './tests',
@@ -10,7 +10,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : 2,
+  workers: process.env.CI ? 4 : 2,
 
   timeout: TIMEOUTS.DEFAULT_E2E_FLOW,
   expect: { timeout: TIMEOUTS.ASSERTION_TIMEOUT },
@@ -62,48 +62,52 @@ export default defineConfig({
     },
 
     {
-      name: 'setup',
+      name: 'setup-chromium',
       testDir: './tests/setup',
       testMatch: /auth\.setup\.ts/,
       use: { ...devices['Desktop Chrome'], channel: 'chrome' }
     },
     {
+      name: 'setup-webkit',
+      testDir: './tests/setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Safari'] }
+    },
+    {
       name: 'part-b-chromium',
       testDir: './tests/part-b',
       testIgnore: /lead-(journey\.ui|negative)\.spec\.ts/,
-      dependencies: ['setup'],
+      dependencies: ['setup-chromium'],
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        storageState: SAVED_LOGIN_FILE
+        storageState: savedLoginFile('chromium')
       }
     },
     {
       name: 'part-b-ui-chromium',
       testDir: './tests/part-b',
       testMatch: /lead-journey\.ui\.spec\.ts/,
-      workers: 1,
-      dependencies: ['part-b-chromium'],
+      dependencies: ['setup-chromium'],
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        storageState: SAVED_LOGIN_FILE
+        storageState: savedLoginFile('chromium')
       }
     },
     {
       name: 'part-b-webkit',
       testDir: './tests/part-b',
       testIgnore: /lead-(journey\.ui|negative)\.spec\.ts/,
-      dependencies: ['setup'],
-      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+      dependencies: ['setup-webkit'],
+      use: { ...devices['Desktop Safari'], storageState: savedLoginFile('webkit') }
     },
     {
       name: 'part-b-ui-webkit',
       testDir: './tests/part-b',
       testMatch: /lead-journey\.ui\.spec\.ts/,
-      workers: 1,
-      dependencies: ['part-b-webkit'],
-      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+      dependencies: ['setup-webkit'],
+      use: { ...devices['Desktop Safari'], storageState: savedLoginFile('webkit') }
     },
 
     {
@@ -114,7 +118,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
-        storageState: SAVED_LOGIN_FILE
+        storageState: savedLoginFile('chromium')
       }
     },
     {
@@ -122,7 +126,7 @@ export default defineConfig({
       testDir: './tests/part-b',
       testMatch: /lead-negative\.spec\.ts/,
       dependencies: ['part-b-ui-webkit'],
-      use: { ...devices['Desktop Safari'], storageState: SAVED_LOGIN_FILE }
+      use: { ...devices['Desktop Safari'], storageState: savedLoginFile('webkit') }
     }
   ]
 });

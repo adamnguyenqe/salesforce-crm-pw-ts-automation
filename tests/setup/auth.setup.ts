@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { HOME_PAGE_PATH, LIGHTNING_URL_PATTERN, SAVED_LOGIN_FILE, TIMEOUTS } from '@constants';
+import { HOME_PAGE_PATH, LIGHTNING_URL_PATTERN, savedLoginFile, TIMEOUTS } from '@constants';
 import { expect, test as setup } from '@fixtures';
 import { HomePage, LoginPage } from '@pages';
 
@@ -27,8 +27,11 @@ async function isExistingSessionValid(page: import('@playwright/test').Page): Pr
   return !isLoginPromptVisible && LIGHTNING_URL_PATTERN.test(page.url());
 }
 
-setup('Authenticate and persist storageState session', async ({ browser }) => {
-  const savedLoginPath = path.resolve(SAVED_LOGIN_FILE);
+setup('Authenticate and persist storageState session', async ({ browser }, testInfo) => {
+  // Each browser authenticates into its own session file, so the per-browser setup
+  // projects can run concurrently without racing a single shared path.
+  const browserKey = testInfo.project.name.replace(/^setup-/, '');
+  const savedLoginPath = path.resolve(savedLoginFile(browserKey));
   const sessionFileExists = fs.existsSync(savedLoginPath);
 
   if (sessionFileExists) {

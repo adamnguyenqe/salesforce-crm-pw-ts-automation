@@ -37,14 +37,14 @@ export class LeadFormPage extends BasePage {
       [this.textField(LEAD_FIELDS.TITLE).first(), lead.title]
     ] as const;
 
+    if (lead.leadSource !== undefined) {
+      await this.selectPicklistValue(LEAD_FIELDS.LEAD_SOURCE, lead.leadSource);
+    }
+
     for (const [input, value] of formInputs) {
       if (value !== undefined) {
         await this.fill(input, value);
       }
-    }
-
-    if (lead.leadSource !== undefined) {
-      await this.selectPicklistValue(LEAD_FIELDS.LEAD_SOURCE, lead.leadSource);
     }
   }
 
@@ -85,7 +85,7 @@ export class LeadFormPage extends BasePage {
     if (!(await this.dismissDuplicateWarning())) {
       throw new Error(
         "Save did not complete: the 'Similar Records Exist' dialog could not be dismissed " +
-          'and is still overlaying the Lead form.'
+        'and is still overlaying the Lead form.'
       );
     }
 

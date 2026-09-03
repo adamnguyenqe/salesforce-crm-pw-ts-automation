@@ -21,8 +21,6 @@ async function readConvertedOpportunityId(leadId: string): Promise<string> {
   return String(lead.ConvertedOpportunityId);
 }
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('Lead Lifecycle & Conversion — Full UI E2E Flows', () => {
   test(
     'TC01: Creates a Lead via UI, validates detail view fields, and updates Status inline',
