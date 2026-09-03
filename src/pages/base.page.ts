@@ -76,6 +76,12 @@ export abstract class BasePage {
     const trigger = this.picklistTrigger(apiName).first();
 
     for (let attempt = 1; attempt <= PICKLIST_ATTEMPTS; attempt++) {
+      // A duplicate rule can raise 'Similar Records Exist' as soon as the form is filled.
+      // It owns the top layer and keeps reclaiming focus, which collapses the Lightning
+      // dropdown mid-selection, so clear it before touching the combobox. Probed with a
+      // short timeout so the common no-dialog path costs almost nothing.
+      await this.dismissDuplicateWarning(TIMEOUTS.SMALL_TIMEOUT);
+
       await this.click(trigger);
 
       // Lightning renders picklist options lazily: the listbox exists but stays empty
@@ -98,7 +104,22 @@ export abstract class BasePage {
         ? this.page.locator(`[id="${listboxId}"]`).getByRole('option', { name: value, exact: true })
         : this.field(apiName).getByRole('option', { name: value, exact: true });
 
-      await this.click(option.first());
+      // The dropdown can collapse between the expanded check and this click (a reclaimed
+      // focus, a re-render), emptying the listbox. Bound the wait and treat a failed click
+      // as retryable, so a blocked selection feeds the loop instead of throwing out of it
+      // after the full default timeout.
+      const clicked = await this.click(option.first(), TIMEOUTS.SCREEN_APPEARS)
+        .then(() => true)
+        .catch(() => false);
+
+      if (!clicked) {
+        this.log.info('Picklist option vanished before it could be clicked, retrying', {
+          apiName,
+          value,
+          attempt
+        });
+        continue;
+      }
 
       const echoed = await trigger
         .getByText(value, { exact: true })
@@ -149,7 +170,8 @@ export abstract class BasePage {
    * Dismisses the 'Similar Records Exist' dialog if present, unblocking the Save button.
    *
    * @param timeout - Maximum duration to check for dialog visibility
-   * @returns True if the dialog appeared and was dismissed, false otherwise
+   * @returns True only if the dialog is gone: it was absent, or it was dismissed and
+   *          confirmed hidden. False means a dialog is still overlaying the page.
    */
   protected async dismissDuplicateWarning(
     timeout: number = TIMEOUTS.SCREEN_APPEARS
@@ -166,12 +188,17 @@ export abstract class BasePage {
       await btn.click({ timeout: TIMEOUTS.SCREEN_APPEARS }).catch(() => undefined);
     }
 
-    await this.duplicateWarningDialog
+    // Report whether the dialog actually closed. Returning true unconditionally would
+    // tell callers the top layer is clear while the dialog still steals focus and
+    // intercepts every subsequent click.
+    return this.duplicateWarningDialog
       .first()
       .waitFor({ state: 'hidden', timeout: TIMEOUTS.SCREEN_APPEARS })
-      .catch(() => this.log.debug('Duplicate dialog still visible after dismiss attempt'));
-
-    return true;
+      .then(() => true)
+      .catch(() => {
+        this.log.warn('Duplicate dialog still visible after dismiss attempt');
+        return false;
+      });
   }
 
   /**
@@ -277,9 +304,10 @@ export abstract class BasePage {
    * Clicks an element with automatic fallback to force-click if blocked by an overlay.
    *
    * @param element - Target Locator to click
+   * @param timeout - Maximum duration to wait for the element to become visible
    */
-  protected async click(element: Locator): Promise<void> {
-    await waitUntilElementVisible(element);
+  protected async click(element: Locator, timeout?: number): Promise<void> {
+    await waitUntilElementVisible(element, timeout);
 
     try {
       await element.click({ timeout: TIMEOUTS.SCREEN_APPEARS });

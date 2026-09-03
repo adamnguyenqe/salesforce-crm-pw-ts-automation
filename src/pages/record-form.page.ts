@@ -135,9 +135,16 @@ export class RecordFormPage extends BasePage {
       .catch(() => false);
 
     if (!savedCleanly) {
-      if (await this.dismissDuplicateWarning()) {
-        await this.click(this.saveButton);
+      // Re-click Save only once the dialog is confirmed gone; while it is up it overlays
+      // the modal footer and the click would block until it timed out.
+      if (!(await this.dismissDuplicateWarning())) {
+        throw new Error(
+          "Save did not complete: the 'Similar Records Exist' dialog could not be dismissed " +
+            'and is still overlaying the record form.'
+        );
       }
+
+      await this.click(this.saveButton);
       await this.page.waitForURL(RECORD_PAGE_URL_PATTERN, {
         timeout: TIMEOUTS.SALESFORCE_LOADING
       });

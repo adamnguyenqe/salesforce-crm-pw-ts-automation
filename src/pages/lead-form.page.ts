@@ -79,9 +79,20 @@ export class LeadFormPage extends BasePage {
       return;
     }
 
-    if (await this.dismissDuplicateWarning()) {
-      await this.click(this.saveButton);
+    // Only re-click Save once the warning is confirmed gone. While it is still up it
+    // overlays the modal footer, so clicking Save would just block until it timed out
+    // with a misleading 'Save not visible' error instead of naming the real blocker.
+    if (!(await this.dismissDuplicateWarning())) {
+      throw new Error(
+        "Save did not complete: the 'Similar Records Exist' dialog could not be dismissed " +
+          'and is still overlaying the Lead form.'
+      );
     }
+
+    await this.click(this.saveButton);
+    await this.page.waitForURL(RECORD_PAGE_URL_PATTERN, {
+      timeout: TIMEOUTS.SALESFORCE_LOADING
+    });
   }
 
   /** Cancels and closes the Lead modal form without saving. */
